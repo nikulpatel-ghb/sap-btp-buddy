@@ -35,17 +35,38 @@ class Runtime:
     retrieval_mode: str
 
 
+def _resolve_index_path(index_path: str) -> Path:
+    """Resolve either a concrete index directory or an active-index container."""
+
+    path = Path(index_path)
+    if (path / "manifest.json").is_file() and (path / "build.complete").is_file():
+        return path
+
+    candidates = sorted(
+        child
+        for child in path.iterdir()
+        if child.is_dir()
+        and (child / "manifest.json").is_file()
+        and (child / "build.complete").is_file()
+    ) if path.is_dir() else []
+    if len(candidates) == 1:
+        return candidates[0]
+    if not candidates:
+        raise ValueError(f"no complete index found under {path}")
+    raise ValueError(f"multiple complete indexes found under {path}; set BTP_INDEX_PATH to one identity directory")
+
+
 def _snapshot_date() -> str:
     manifest_path = PROJECT_ROOT / "artifacts" / "corpus_manifest.json"
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
         return str(manifest.get("snapshot_timestamp_utc", "unknown"))
     except (OSError, json.JSONDecodeError):
         return "unknown"
 
 
 def _approved_maps() -> tuple[dict[str, str], dict[str, str]]:
-    manifest = json.loads((PROJECT_ROOT / "artifacts" / "corpus_manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads((PROJECT_ROOT / "artifacts" / "corpus_manifest.json").read_text(encoding="utf-8-sig"))
     repositories = manifest["repositories"]
     by_label = {"primary": repositories[0]["repository"], "secondary": repositories[1]["repository"]}
     commits = {item["repository"]: item["commit"] for item in repositories}
@@ -59,11 +80,12 @@ def load_runtime(index_path: str, retrieval_mode: str) -> Runtime:
     try:
         if not live_generation_allowed(PROJECT_ROOT / "config.yaml"):
             raise RuntimeError("live generation is disabled by config.yaml")
-        index = load_index(Path(index_path))
+        resolved_index_path = _resolve_index_path(index_path)
+        index = load_index(resolved_index_path)
         generator = build_generation_adapter()
         by_label, commits = _approved_maps()
         graph = build_answer_graph(index, generator, repository_by_label=by_label, commit_by_repository=commits, retrieval_mode=retrieval_mode, max_retrieval_retries=1)
-        return Runtime(graph, None, _snapshot_date(), index_path, retrieval_mode)
+        return Runtime(graph, None, _snapshot_date(), str(resolved_index_path), retrieval_mode)
     except Exception as exc:  # startup must be visible and sanitized
         return Runtime(None, f"Startup is unavailable: {type(exc).__name__}. Configure a compatible index and generation provider.", _snapshot_date(), index_path, retrieval_mode)
 

@@ -1,0 +1,4 @@
+[server]
+# Transformers exposes lazy optional vision modules. Streamlit's source watcher
+# probes those modules during startup even though this app uses text embeddings only.
+fileWatcherType = "none"
