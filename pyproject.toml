@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sap-btp-buddy"
+version = "0.1.0"
+description = "Documentation-grounded SAP BTP RAG application"
+requires-python = ">=3.11,<3.16"
+dependencies = [
+    "chromadb",
+    "ipykernel",
+    "jupyterlab",
+    "langchain-chroma",
+    "langchain-core",
+    "langchain-huggingface",
+    "langchain-text-splitters",
+    "langgraph",
+    "matplotlib",
+    "nbclient",
+    "nbconvert",
+    "nbformat",
+    "openai",
+    "langchain-openai",
+    "pandas",
+    "pytest",
+    "python-dotenv",
+    "pyyaml",
+    "rank-bm25",
+    "sentence-transformers",
+    "streamlit",
+]
+
+[project.scripts]
+sap-btp-buddy = "sap_btp_buddy.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["sap_btp_buddy"]

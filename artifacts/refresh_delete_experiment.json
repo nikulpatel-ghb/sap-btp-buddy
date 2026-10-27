@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "fixture_root": "temporary pytest directory",
+  "initial_allowlist": ["docs/a.md", "docs/b.md"],
+  "deleted_fixture_path": "docs/b.md",
+  "included_after_refresh": ["docs/a.md"],
+  "stale_deleted_after_refresh": ["docs/b.md"],
+  "new_unallowlisted_after_refresh": [],
+  "pinned_evaluation_snapshot_mutated": false,
+  "note": "Fixture-only refresh/delete experiment; data/raw and the pinned corpus manifest were not modified."
+}

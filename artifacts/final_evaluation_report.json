@@ -1,0 +1,37 @@
+{
+  "run_id": "final-2026-10-19-preflight-blocked",
+  "status": "BLOCKED_PRECHECK",
+  "question_count": 20,
+  "raw_output_records": 20,
+  "model_outputs_saved": 0,
+  "reviewed_scores": 0,
+  "missing_reviewed_labels": 20,
+  "failure": "LOCKED_INDEX_UNAVAILABLE",
+  "locked_config": {
+    "corpus_manifest": "artifacts/corpus_manifest.json",
+    "corpus_hash": "PENDING_CORPUS_CONTENT_FINGERPRINT",
+    "corpus_manifest_sha256": "0b254e1f772afb6920ab437ff98176bd496fc949a37853ae54dd85c618b29436",
+    "index_path": "indexes/active",
+    "index_available": false,
+    "final_question_file": "eval/questions_final.jsonl",
+    "top_k": 5,
+    "generation_configuration": "PENDING_ACCOUNT_VERIFIED_CONFIGURATION"
+  },
+  "denominators": {
+    "retrieval_eligible": null,
+    "answerable_non_ambiguous_non_injection": null,
+    "multi_source": null,
+    "ambiguous": null,
+    "unanswerable": null,
+    "injection": null,
+    "technical_error": 20,
+    "warm_latency": null
+  },
+  "metrics": null,
+  "missing_labels": ["retrieval_relevance", "claim_faithfulness", "citation_precision", "status_correct", "latency_ms", "failure_review"],
+  "artifacts": {
+    "raw_outputs": "artifacts/final_evaluation_raw.jsonl",
+    "annotation_worksheet": "eval/annotation_worksheet_final.csv"
+  },
+  "note": "The twenty records are explicit preflight-failure records, not model answers or reviewed scores. No aggregate metric is calculated."
+}

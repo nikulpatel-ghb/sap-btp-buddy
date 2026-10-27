@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.pytest-tmp/
+.uv-cache-temp/
+.ipython-project/
+
+# Environments
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local data, indexes, models, and generated artifacts
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+indexes/*
+!indexes/.gitkeep
+artifacts/runs/*
+!artifacts/runs/.gitkeep
+artifacts/figures/*
+!artifacts/figures/.gitkeep
+chroma_langchain_db/
+*.chroma/
+models/
+*.lock.tmp
+*.egg-info/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/*.code-workspace

@@ -1,0 +1,11 @@
+flowchart TD
+    START --> retrieve[retrieve: bounded retry]
+    retrieve --> decide[decide: sufficiency policy]
+    decide -->|answered| generate[generate: grounded JSON + citation validation]
+    decide -->|clarify| terminal_clarify[terminal: clarify]
+    decide -->|insufficient_evidence| terminal_insufficient[terminal: insufficient_evidence]
+    decide -->|error| terminal_error[terminal: error]
+    generate --> END
+    terminal_clarify --> END
+    terminal_insufficient --> END
+    terminal_error --> END

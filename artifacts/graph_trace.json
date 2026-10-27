@@ -1,0 +1,20 @@
+{
+  "status": "PENDING_RUNTIME_CAPTURE",
+  "graph_figure": "artifacts/graph_answer_flow.mmd",
+  "state_fields": [
+    "question",
+    "results",
+    "decision",
+    "result",
+    "trace",
+    "backend_error",
+    "retrieval_attempts"
+  ],
+  "trace_schema": {
+    "node": "retrieve|decide|generate|terminal",
+    "elapsed_ms": "measured at runtime",
+    "decision": "sanitized branch/status details only"
+  },
+  "retry_limit": 1,
+  "reason": "Graph tests and standalone equivalence passed, but the separate runtime capture process was blocked by an access-denied error from the project Python launcher. No timing value is claimed."
+}

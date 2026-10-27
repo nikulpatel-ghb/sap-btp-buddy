@@ -1,0 +1,16 @@
+{
+  "input_limit": 512,
+  "model_id": "intfloat/e5-small-v2",
+  "revision": "ffb93f3bd4047442299a41ebb6fa998a38507c52",
+  "statistics": {
+    "code_chunks": 126,
+    "count": 16661,
+    "duplicate_rate": 0.6878338635135945,
+    "overflow_chunks": 9273,
+    "table_chunks": 9281,
+    "token_max": 395,
+    "token_median": 31,
+    "token_min": 9,
+    "token_p95": 87
+  }
+}

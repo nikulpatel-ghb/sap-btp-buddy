@@ -1,0 +1,18 @@
+{
+  "status": "PENDING_RESOURCE_BLOCKED",
+  "split": "dev",
+  "retrieval": "dense",
+  "top_k": 5,
+  "chunker": "A_fixed_token",
+  "model_id": "intfloat/e5-small-v2",
+  "model_revision": "ffb93f3bd4047442299a41ebb6fa998a38507c52",
+  "input_limit": 512,
+  "dimensions": 384,
+  "tokenizer_safe_chunk_artifact": "artifacts/chunks_fixed_token_e5_small_v2.jsonl",
+  "tokenizer_safe_chunk_count": 16661,
+  "tokenizer_safe_chunk_max_tokens": 395,
+  "ranked_query_evidence": null,
+  "metrics": null,
+  "miss_inspection": null,
+  "blocker": "CPU dense embedding pass over the full approved corpus did not complete; incomplete generated index directories were removed. No retrieval metrics or misses are claimed."
+}
