@@ -1,4 +1,4 @@
-"""Minimal single-turn Streamlit adapter over the shared answer graph."""
+"""Conversational Streamlit adapter over the shared answer graph."""
 
 from __future__ import annotations
 
@@ -109,7 +109,7 @@ def _render_evidence(result: Any) -> None:
 def _render_result(result: Any, elapsed_ms: float) -> None:
     status = getattr(result, "status", "error")
     labels = {"answered": "Answer", "clarify": "Clarification needed", "insufficient_evidence": "Insufficient evidence", "error": "Operational error"}
-    st.subheader(labels.get(status, "Result"))
+    st.markdown(f"**{labels.get(status, 'Result')}**")
     if status == "error":
         st.error(result.answer)
     elif status == "insufficient_evidence":
@@ -122,10 +122,27 @@ def _render_result(result: Any, elapsed_ms: float) -> None:
     _render_evidence(result)
 
 
+def _render_message(message: dict[str, Any]) -> None:
+    """Render one persisted conversation turn using native Streamlit chat bubbles."""
+
+    if message["role"] == "user":
+        with st.chat_message("user"):
+            st.markdown(message["content"])
+        return
+
+    with st.chat_message("assistant", avatar=":material/auto_awesome:"):
+        result = message.get("result")
+        if result is None:
+            st.error(message.get("content", "The assistant could not produce a result."))
+            return
+        _render_result(result, float(message.get("elapsed_ms", 0.0)))
+
+
 def main() -> None:
     st.set_page_config(page_title="SAP BTP Buddy", page_icon="📘", layout="wide")
     st.title("SAP BTP Buddy")
-    st.caption("Single-turn, documentation-grounded answers from the approved SAP-docs snapshot")
+    st.caption("Documentation-grounded conversation over the approved SAP-docs snapshot. Each question is answered independently.")
+    st.session_state.setdefault("messages", [])
     index_path = os.getenv("BTP_INDEX_PATH", str(PROJECT_ROOT / "indexes" / "active"))
     retrieval_mode = os.getenv("BTP_RETRIEVAL_MODE", "hybrid")
     runtime = load_runtime(index_path, retrieval_mode)
@@ -135,14 +152,14 @@ def main() -> None:
         st.caption(f"Snapshot: `{runtime.snapshot_date}`")
         st.caption(f"Index: `{Path(runtime.index_path).name}`")
         st.caption(f"Retrieval: `{runtime.retrieval_mode}` · top-k `5`")
-        if st.button("Reset", use_container_width=True):
-            for key in ("pending_question", "last_result"):
+        if st.button("Reset conversation", width="stretch"):
+            for key in ("pending_question", "messages"):
                 st.session_state.pop(key, None)
             st.rerun()
         st.divider()
         st.markdown("**Example questions**")
         for index, example in enumerate(EXAMPLES):
-            if st.button(example, key=f"example_{index}", use_container_width=True):
+            if st.button(example, key=f"example_{index}", width="stretch"):
                 st.session_state["pending_question"] = example
                 st.rerun()
 
@@ -150,11 +167,19 @@ def main() -> None:
         st.error(runtime.startup_error)
         st.info("The UI is ready, but no answer will be produced until the validated index and provider configuration are available.")
 
-    question = st.chat_input("Ask one SAP BTP documentation question")
+    for message in st.session_state.messages:
+        _render_message(message)
+
+    question = st.chat_input("Ask one SAP BTP documentation question", submit_mode="disable")
     question = question or st.session_state.pop("pending_question", None)
     if question:
+        user_message = {"role": "user", "content": question}
+        st.session_state.messages.append(user_message)
+        _render_message(user_message)
         if runtime.graph is None:
-            st.warning("Startup fallback: the shared graph is unavailable, so no answer was attempted.")
+            fallback = {"role": "assistant", "content": "Startup fallback: the shared graph is unavailable, so no answer was attempted."}
+            st.session_state.messages.append(fallback)
+            _render_message(fallback)
             return
         record = {"question": question, "support_status": "RUNTIME", "labels": [], "evidence_groups": []}
         started = time.perf_counter()
@@ -163,9 +188,17 @@ def main() -> None:
                 state = runtime.graph.invoke({"question": record})
                 result = state["result"]
             except Exception:
-                st.error("The shared answer graph failed before producing a validated result. Please retry later.")
+                fallback = {"role": "assistant", "content": "The shared answer graph failed before producing a validated result. Please retry later."}
+                st.session_state.messages.append(fallback)
+                _render_message(fallback)
                 return
-        _render_result(result, (time.perf_counter() - started) * 1000)
+        assistant_message = {
+            "role": "assistant",
+            "result": result,
+            "elapsed_ms": (time.perf_counter() - started) * 1000,
+        }
+        st.session_state.messages.append(assistant_message)
+        _render_message(assistant_message)
 
 
 if __name__ == "__main__":

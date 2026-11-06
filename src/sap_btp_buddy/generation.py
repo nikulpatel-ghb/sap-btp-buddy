@@ -115,6 +115,39 @@ def _invalid(errors: list[str]) -> dict[str, Any]:
     return {"valid": False, "errors": errors}
 
 
+def _parse_json_payload(raw: str) -> Any:
+    """Parse JSON while accepting one outer Markdown code fence from the provider."""
+
+    text = raw.strip()
+    if text.startswith("```"):
+        lines = text.splitlines()
+        if lines and lines[0].strip().startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+    return json.loads(text)
+
+
+def _canonicalize_payload(payload: Any, passages: list[dict[str, Any]]) -> Any:
+    """Canonicalize a redundant known evidence list before strict validation."""
+
+    if not isinstance(payload, dict) or not isinstance(payload.get("evidence_ids"), list):
+        return payload
+    known = {passage["evidence_id"] for passage in passages}
+    declared = payload["evidence_ids"]
+    if not all(isinstance(item, str) and item in known for item in declared):
+        return payload
+    cited: list[str] = []
+    for claim in payload.get("claims", []):
+        if isinstance(claim, dict):
+            cited.extend(item for item in claim.get("evidence_ids", []) if isinstance(item, str))
+    for command in payload.get("cli_commands", []):
+        if isinstance(command, dict):
+            cited.extend(item for item in command.get("evidence_ids", []) if isinstance(item, str))
+    return {**payload, "evidence_ids": list(dict.fromkeys(cited))}
+
+
 def validate_payload(payload: Any, passages: list[dict[str, Any]]) -> dict[str, Any]:
     """Validate citation IDs and structure; entailment is a separate evaluation."""
 
@@ -153,6 +186,9 @@ def validate_payload(payload: Any, passages: list[dict[str, Any]]) -> dict[str, 
             if command["text"] not in source:
                 errors.append(f"CLI text is not an exact substring of evidence {evidence_id}")
     union = list(dict.fromkeys(cited))
+    declared_unknown = sorted(set(payload["evidence_ids"]) - known)
+    if declared_unknown:
+        errors.append(f"unknown evidence IDs: {declared_unknown}")
     if payload["evidence_ids"] != union:
         errors.append("evidence_ids must equal the ordered deduplicated citation union")
     unknown = sorted(set(union) - known)
@@ -187,7 +223,7 @@ def generate_grounded_answer(question: str, results: list[SearchResult], generat
         return _fallback(passages, generator, "error", "The generation backend failed; no answer was produced.", [type(exc).__name__])
     for attempt in range(2):
         try:
-            payload = json.loads(raw)
+            payload = _canonicalize_payload(_parse_json_payload(raw), passages)
         except json.JSONDecodeError as exc:
             validation = _invalid([f"malformed JSON: {exc.msg}"])
         else:

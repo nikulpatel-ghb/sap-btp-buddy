@@ -83,6 +83,15 @@ def test_retrieval_retry_limit_is_bounded():
     assert result["result"].status == "error"
 
 
+def test_runtime_question_without_evidence_term_abstains_before_generation():
+    generator = FakeGenerator()
+    question = {"question": "What is your name?", "support_status": "RUNTIME", "labels": [], "evidence_groups": []}
+    result = _graph(question, generator=generator).invoke({"question": question})
+    assert result["result"].status == "insufficient_evidence"
+    assert generator.calls == 0
+    assert result["decision"].signals["runtime_query_overlap"] == 0
+
+
 def test_graph_matches_standalone_backend_for_same_question_and_configuration():
     question = _question()
     graph_generator = FakeGenerator()

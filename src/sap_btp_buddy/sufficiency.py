@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import Any, Mapping, Sequence
 
 from .generation import GroundedResult, _runtime
@@ -15,6 +16,37 @@ class SufficiencyDecision:
     message: str
     signals: dict[str, Any]
     missing_group_ids: tuple[str, ...] = ()
+
+
+_RUNTIME_STOPWORDS = frozenset({
+    "about", "and", "are", "can", "does", "how", "is", "me", "please",
+    "tell", "that", "the", "this", "what", "when", "where", "which",
+    "who", "why", "with", "would", "your",
+})
+
+
+def _runtime_query_overlap(question: str, results: Sequence[SearchResult]) -> int:
+    """Count meaningful question terms present in retrieved evidence."""
+
+    normalized_question = question.lower().strip()
+    if (
+        re.search(r"\b(?:your|my)\s+name\b", normalized_question)
+        or re.search(r"\bwho\s+are\s+you\b", normalized_question)
+        or normalized_question in {"hello", "hi", "hey"}
+    ):
+        return 0
+
+    terms = {
+        term
+        for term in re.findall(r"[a-z0-9][a-z0-9_-]+", question.lower())
+        if len(term) > 2 and term not in _RUNTIME_STOPWORDS
+    }
+    evidence = " ".join(
+        f"{result.chunk.metadata.get('title', '')} {result.chunk.metadata.get('heading_breadcrumb', '')} {result.chunk.text}"
+        for result in results
+    ).lower()
+    evidence_terms = set(re.findall(r"[a-z0-9][a-z0-9_-]+", evidence))
+    return sum(1 for term in terms if term in evidence_terms)
 
 
 def assess_sufficiency(
@@ -40,7 +72,11 @@ def assess_sufficiency(
         return SufficiencyDecision("insufficient_evidence", "The approved retrieved evidence does not establish an answer.", {"support_status": status, "retrieved_count": 0, "numeric_confidence": None})
     if not groups:
         if status == "RUNTIME":
-            return SufficiencyDecision("answered", "Retrieved evidence is available; answer only supported claims.", {"support_status": status, "retrieved_count": len(results), "top_k_policy": 5, "required_group_coverage": None, "numeric_confidence": None})
+            overlap = _runtime_query_overlap(str(question.get("question", "")), results)
+            signals = {"support_status": status, "retrieved_count": len(results), "top_k_policy": 5, "required_group_coverage": None, "runtime_query_overlap": overlap, "numeric_confidence": None}
+            if overlap == 0:
+                return SufficiencyDecision("insufficient_evidence", "The question is outside the supported SAP BTP documentation scope; the approved corpus does not establish an answer.", signals)
+            return SufficiencyDecision("answered", "Retrieved evidence is available; answer only supported claims.", signals)
         return SufficiencyDecision("insufficient_evidence", "No reviewed evidence group is available for this request.", {"support_status": status, "retrieved_count": len(results), "numeric_confidence": None})
 
     from .baseline import _group_hit

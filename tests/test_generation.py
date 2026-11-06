@@ -67,6 +67,25 @@ def test_valid_citation_renders_commit_pinned_source():
     assert "github.com/SAP-docs/btp-cloud-platform/blob/" in result.evidence[0]["source_url"]
 
 
+def test_markdown_fenced_json_response_is_accepted():
+    generator = FakeGenerator([f"```json\n{_payload()}\n```"])
+    result = generate_grounded_answer("What does it say?", [_result()], generator)
+    assert result.status == "answered"
+    assert result.validation["valid"] is True
+    assert len(generator.calls) == 1
+
+
+def test_known_extra_top_level_evidence_ids_are_canonicalized():
+    second = _result("A second passage.")
+    second = SearchResult(Chunk("E2", second.chunk.text, second.chunk.metadata), 0.8)
+    payload = json.loads(_payload())
+    payload["evidence_ids"] = ["E1", "E2"]
+    generator = FakeGenerator([json.dumps(payload)])
+    result = generate_grounded_answer("What does it say?", [_result(), second], generator)
+    assert result.status == "answered"
+    assert result.validation["valid"] is True
+
+
 def test_empty_retrieval_is_insufficient_evidence_without_provider_call():
     generator = FakeGenerator([])
     result = generate_grounded_answer("Unknown?", [], generator)
