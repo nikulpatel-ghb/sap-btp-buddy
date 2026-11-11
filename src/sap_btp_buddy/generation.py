@@ -132,7 +132,27 @@ def _parse_json_payload(raw: str) -> Any:
 def _canonicalize_payload(payload: Any, passages: list[dict[str, Any]]) -> Any:
     """Canonicalize a redundant known evidence list before strict validation."""
 
-    if not isinstance(payload, dict) or not isinstance(payload.get("evidence_ids"), list):
+    if not isinstance(payload, dict):
+        return payload
+    if payload.get("status") == "insufficient_evidence" and isinstance(payload.get("claims"), list):
+        """Treat a provider's explanation of insufficiency as a limitation, not a factual claim."""
+        migrated = [
+            claim["text"]
+            for claim in payload["claims"]
+            if isinstance(claim, dict) and isinstance(claim.get("text"), str) and claim["text"].strip()
+        ]
+        limitations = list(payload.get("limitations", [])) if isinstance(payload.get("limitations"), list) else []
+        return {
+            **payload,
+            "claims": [],
+            "limitations": list(dict.fromkeys([*limitations, *migrated])),
+            "evidence_ids": [
+                item
+                for item in payload.get("evidence_ids", [])
+                if isinstance(item, str)
+            ] if payload.get("cli_commands") else [],
+        }
+    if not isinstance(payload.get("evidence_ids"), list):
         return payload
     known = {passage["evidence_id"] for passage in passages}
     declared = payload["evidence_ids"]

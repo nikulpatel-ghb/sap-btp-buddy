@@ -101,6 +101,26 @@ def test_invalid_citation_repair_failure_is_explicit_error():
     assert len(generator.calls) == 2
 
 
+def test_insufficient_evidence_explanation_is_not_treated_as_answered_claims():
+    payload = {
+        "status": "insufficient_evidence",
+        "answer": "The supplied passages do not establish the requested definition.",
+        "claims": [{"claim_id": "C1", "text": "The supplied passages do not establish the requested definition.", "evidence_ids": ["E1"]}],
+        "cli_commands": [],
+        "limitations": ["The evidence is incomplete."],
+        "missing_information": ["A definition of the requested term."],
+        "evidence_ids": ["E1"],
+    }
+    generator = FakeGenerator([json.dumps(payload)])
+
+    result = generate_grounded_answer("What is latency in BTP?", [_result()], generator)
+
+    assert result.status == "insufficient_evidence"
+    assert result.validation["valid"] is True
+    assert result.claims == ()
+    assert "requested definition" in result.limitations[-1]
+
+
 def test_malformed_response_repair_failure_is_explicit_error():
     generator = FakeGenerator(["not-json", "still-not-json"])
     result = generate_grounded_answer("What does it say?", [_result()], generator)

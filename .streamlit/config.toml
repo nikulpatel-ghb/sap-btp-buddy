@@ -2,3 +2,26 @@
 # Transformers exposes lazy optional vision modules. Streamlit's source watcher
 # probes those modules during startup even though this app uses text embeddings only.
 fileWatcherType = "none"
+
+[theme]
+base = "light"
+primaryColor = "#0A6FFF"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F5F9FF"
+textColor = "#14213D"
+borderColor = "#D9E2EE"
+font = "sans-serif"
+baseRadius = "0.75rem"
+buttonRadius = "0.65rem"
+showWidgetBorder = true
+showSidebarBorder = false
+paddingTop = "1rem"
+paddingBottom = "2rem"
+
+[theme.sidebar]
+backgroundColor = "#071D36"
+secondaryBackgroundColor = "#0B2D55"
+textColor = "#EDF6FF"
+borderColor = "#254B73"
+primaryColor = "#0A6FFF"
+linkColor = "#6DD3FF"
