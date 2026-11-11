@@ -35,8 +35,8 @@ class Runtime:
     retrieval_mode: str
 
 
-def _resolve_index_path(index_path: str) -> Path:
-    """Resolve either a concrete index directory or an active-index container."""
+def _resolve_index_path(index_path: str, retrieval_mode: str = "hybrid") -> Path:
+    """Resolve a concrete index or the active identity for the requested mode."""
 
     path = Path(index_path)
     if (path / "manifest.json").is_file() and (path / "build.complete").is_file():
@@ -49,11 +49,22 @@ def _resolve_index_path(index_path: str) -> Path:
         and (child / "manifest.json").is_file()
         and (child / "build.complete").is_file()
     ) if path.is_dir() else []
-    if len(candidates) == 1:
-        return candidates[0]
+    compatible = []
+    for candidate in candidates:
+        try:
+            manifest = json.loads((candidate / "manifest.json").read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if manifest.get("retrieval") == retrieval_mode:
+            compatible.append(candidate)
+    if len(compatible) == 1:
+        return compatible[0]
     if not candidates:
         raise ValueError(f"no complete index found under {path}")
-    raise ValueError(f"multiple complete indexes found under {path}; set BTP_INDEX_PATH to one identity directory")
+    if not compatible:
+        available = ", ".join(candidate.name for candidate in candidates)
+        raise ValueError(f"no complete {retrieval_mode} index found under {path}; available identities: {available}")
+    raise ValueError(f"multiple complete {retrieval_mode} indexes found under {path}; set BTP_INDEX_PATH to one identity directory")
 
 
 def _snapshot_date() -> str:
@@ -80,7 +91,7 @@ def load_runtime(index_path: str, retrieval_mode: str) -> Runtime:
     try:
         if not live_generation_allowed(PROJECT_ROOT / "config.yaml"):
             raise RuntimeError("live generation is disabled by config.yaml")
-        resolved_index_path = _resolve_index_path(index_path)
+        resolved_index_path = _resolve_index_path(index_path, retrieval_mode)
         index = load_index(resolved_index_path)
         generator = build_generation_adapter()
         by_label, commits = _approved_maps()
